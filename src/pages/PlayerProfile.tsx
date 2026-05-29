@@ -1,5 +1,9 @@
+import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getPlayerById, winRate } from '../data/mockData';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import { type Player } from '../types';
+import { winRate } from '../data/mockData';
 
 interface StatTileProps {
   label: string;
@@ -27,7 +31,32 @@ function StatTile({ label, value, emphasize }: StatTileProps) {
 /** Individual player profile, resolved from the :playerId URL parameter. */
 export default function PlayerProfile() {
   const { playerId } = useParams<{ playerId: string }>();
-  const player = playerId ? getPlayerById(playerId) : undefined;
+  const [player, setPlayer] = useState<Player | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!playerId) return;
+
+    const docRef = doc(db, 'players', playerId);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setPlayer({ id: docSnap.id, ...docSnap.data() } as Player);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [playerId]);
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="stat-num text-zinc-500 animate-pulse uppercase tracking-widest text-xs">
+          Loading Player Profile...
+        </div>
+      </div>
+    );
+  }
 
   if (!player) {
     return (
@@ -85,11 +114,11 @@ export default function PlayerProfile() {
           <div className="mt-4 grid grid-cols-2 gap-4">
             <div>
               <div className="text-[10px] font-semibold uppercase text-zinc-500">Wins</div>
-              <div className="stat-num text-xl text-zinc-100">{player.ffaWins}</div>
+              <div className="stat-num text-xl text-zinc-100">{player.ffaWins || 0}</div>
             </div>
             <div>
               <div className="text-[10px] font-semibold uppercase text-zinc-500">Total Score</div>
-              <div className="stat-num text-xl text-zinc-100">{player.ffaScore.toLocaleString()}</div>
+              <div className="stat-num text-xl text-zinc-100">{(player.ffaScore || 0).toLocaleString()}</div>
             </div>
           </div>
         </div>
@@ -99,11 +128,11 @@ export default function PlayerProfile() {
           <div className="mt-4 grid grid-cols-2 gap-4">
             <div>
               <div className="text-[10px] font-semibold uppercase text-zinc-500">Wins</div>
-              <div className="stat-num text-xl text-zinc-100">{player.teamWins}</div>
+              <div className="stat-num text-xl text-zinc-100">{player.teamWins || 0}</div>
             </div>
             <div>
               <div className="text-[10px] font-semibold uppercase text-zinc-500">Total Score</div>
-              <div className="stat-num text-xl text-zinc-100">{player.teamScore.toLocaleString()}</div>
+              <div className="stat-num text-xl text-zinc-100">{(player.teamScore || 0).toLocaleString()}</div>
             </div>
           </div>
         </div>

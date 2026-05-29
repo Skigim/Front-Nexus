@@ -29,6 +29,9 @@ export interface PlayerStats {
   teamScore: number;
 }
 
+/** Alias for PlayerStats used in components */
+export type Player = PlayerStats;
+
 export interface ClanRanking {
   id: string;
   /** Short tag rendered in tables, e.g. "VOID". */

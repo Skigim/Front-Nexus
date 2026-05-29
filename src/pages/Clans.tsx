@@ -1,4 +1,7 @@
-import { clans, winRate } from '../data/mockData';
+import { useState, useEffect } from 'react';
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import type { ClanRanking } from '../types';
 
 const cell = 'px-3 py-1.5 text-right stat-num text-zinc-300';
 const headCell =
@@ -6,7 +9,37 @@ const headCell =
 
 /** Clan rankings table. */
 export default function Clans() {
-  const ranked = [...clans].sort((a, b) => b.elo - a.elo);
+  const [ranked, setRanked] = useState<ClanRanking[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(
+      collection(db, 'clans'),
+      orderBy('elo', 'desc'),
+      limit(50)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as ClanRanking[];
+      setRanked(data);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="stat-num text-zinc-500 animate-pulse uppercase tracking-widest text-xs">
+          Fetching Clan Standings...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <section>
@@ -14,10 +47,10 @@ export default function Clans() {
         <h1 className="text-sm font-bold uppercase tracking-widest text-zinc-100">
           Clan Rankings
         </h1>
-        <div className="flex items-center gap-4 font-mono text-xs text-zinc-500">
+        <div className="flex items-center gap-4 font-mono text-[10px] text-zinc-500">
           <span>{ranked.length} clans active</span>
           <span className="text-zinc-700">|</span>
-          <span>Last Ingest: {new Date().toLocaleDateString()}</span>
+          <span className="text-accent animate-pulse">● LIVE DATA</span>
         </div>
       </div>
 
@@ -50,11 +83,11 @@ export default function Clans() {
                   {clan.name}
                 </td>
                 <td className={`${cell} font-semibold text-zinc-100`}>
-                  {clan.elo}
+                  {(clan.elo || 0).toLocaleString()}
                 </td>
-                <td className={cell}>{clan.ffaScore.toLocaleString()}</td>
-                <td className={cell}>{clan.teamScore.toLocaleString()}</td>
-                <td className={cell}>{clan.wins}</td>
+                <td className={cell}>{(clan.ffaScore || 0).toLocaleString()}</td>
+                <td className={cell}>{(clan.teamScore || 0).toLocaleString()}</td>
+                <td className={cell}>{(clan.wins || 0).toLocaleString()}</td>
               </tr>
             ))}
           </tbody>

@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { players, winRate } from '../data/mockData';
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import { type Player } from '../types';
+import { winRate } from '../data/mockData';
 
 const cell = 'px-3 py-1.5 text-right stat-num text-zinc-300';
 const headCell =
@@ -15,11 +18,42 @@ type Mode = 'FFA' | 'Teams';
 /** Global leaderboard — toggles between FFA and Teams. */
 export default function Leaderboard() {
   const [mode, setMode] = useState<Mode>('FFA');
+  const [loading, setLoading] = useState(true);
+  const [playersList, setPlayersList] = useState<Player[]>([]);
 
-  const ranked = [...players].sort((a, b) => {
-    if (mode === 'FFA') return b.ffaScore - a.ffaScore;
-    return b.teamScore - a.teamScore;
-  });
+  useEffect(() => {
+    // Determine sort field based on mode
+    const sortField = mode === 'FFA' ? 'ffaScore' : 'teamScore';
+    
+    const q = query(
+      collection(db, 'players'),
+      orderBy(sortField, 'desc'),
+      limit(100)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      console.log(`[Firestore] Received update: ${snapshot.size} players`);
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Player[];
+      
+      setPlayersList(data);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [mode]);
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="stat-num text-zinc-500 animate-pulse uppercase tracking-widest text-xs">
+          Connecting to Front-Nexus Live Stats...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <section>
@@ -29,9 +63,9 @@ export default function Leaderboard() {
             Global Leaderboard
           </h1>
           <div className="mt-1 flex items-center gap-4 font-mono text-[10px] text-zinc-500">
-            <span>{ranked.length} players tracked</span>
+            <span>{playersList.length} players tracked</span>
             <span className="text-zinc-700">|</span>
-            <span>Last Ingest: {new Date().toLocaleDateString()}</span>
+            <span className="text-accent animate-pulse">● LIVE FIRESTORE</span>
           </div>
         </div>
 
@@ -39,7 +73,10 @@ export default function Leaderboard() {
           {(['FFA', 'Teams'] as Mode[]).map((m) => (
             <button
               key={m}
-              onClick={() => setMode(m)}
+              onClick={() => {
+                setLoading(true);
+                setMode(m);
+              }}
               className={`px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${
                 mode === m
                   ? 'bg-accent text-zinc-900'
@@ -66,7 +103,7 @@ export default function Leaderboard() {
             </tr>
           </thead>
           <tbody>
-            {ranked.map((player, index) => (
+            {playersList.map((player, index) => (
               <tr
                 key={player.id}
                 className="border-b border-zinc-800/70 odd:bg-zinc-950 even:bg-zinc-900/40 hover:bg-zinc-800/40"
