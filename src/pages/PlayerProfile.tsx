@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { type Player } from '../types';
-import { winRate } from '../data/mockData';
+import { winRate } from '../utils';
 
 interface StatTileProps {
   label: string;

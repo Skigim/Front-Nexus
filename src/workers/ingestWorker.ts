@@ -195,7 +195,9 @@ async function ingest() {
           id: clan.clanTag,
           tag: clan.clanTag,
           name: clan.clanTag, // API doesn't provide full name here
-          elo: Math.floor(clan.weightedWLRatio * 1000), // Derived ELO
+          elo: Math.floor(clan.weightedWLRatio * 1000), // Derived performance ELO
+          games: clan.games || (clan.wins + clan.losses),
+          weightedWLRatio: clan.weightedWLRatio,
           members: 0,
           wins: clan.wins,
           losses: clan.losses,
