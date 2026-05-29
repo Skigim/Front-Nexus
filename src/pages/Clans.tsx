@@ -14,9 +14,11 @@ export default function Clans() {
         <h1 className="text-sm font-bold uppercase tracking-widest text-zinc-100">
           Clan Rankings
         </h1>
-        <span className="font-mono text-xs text-zinc-500">
-          {ranked.length} clans
-        </span>
+        <div className="flex items-center gap-4 font-mono text-xs text-zinc-500">
+          <span>{ranked.length} clans active</span>
+          <span className="text-zinc-700">|</span>
+          <span>Last Ingest: {new Date().toLocaleDateString()}</span>
+        </div>
       </div>
 
       <div className="overflow-x-auto border border-zinc-800">
@@ -27,10 +29,9 @@ export default function Clans() {
               <th className={`${headCell} text-left`}>Tag</th>
               <th className={`${headCell} text-left`}>Clan</th>
               <th className={headCell}>ELO</th>
-              <th className={headCell}>Members</th>
-              <th className={headCell}>W</th>
-              <th className={headCell}>L</th>
-              <th className={headCell}>Win%</th>
+              <th className={headCell}>FFA Score</th>
+              <th className={headCell}>Team Score</th>
+              <th className={headCell}>Total Wins</th>
             </tr>
           </thead>
           <tbody>
@@ -51,12 +52,9 @@ export default function Clans() {
                 <td className={`${cell} font-semibold text-zinc-100`}>
                   {clan.elo}
                 </td>
-                <td className={cell}>{clan.members}</td>
+                <td className={cell}>{clan.ffaScore.toLocaleString()}</td>
+                <td className={cell}>{clan.teamScore.toLocaleString()}</td>
                 <td className={cell}>{clan.wins}</td>
-                <td className={cell}>{clan.losses}</td>
-                <td className={cell}>
-                  {(winRate(clan) * 100).toFixed(1)}%
-                </td>
               </tr>
             ))}
           </tbody>

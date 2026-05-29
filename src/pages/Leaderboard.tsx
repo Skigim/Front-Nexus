@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { players, winRate } from '../data/mockData';
 
@@ -9,19 +10,46 @@ function pct(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
 }
 
-/** Global FFA leaderboard — players ranked by ELO. */
+type Mode = 'FFA' | 'Teams';
+
+/** Global leaderboard — toggles between FFA and Teams. */
 export default function Leaderboard() {
-  const ranked = [...players].sort((a, b) => b.elo - a.elo);
+  const [mode, setMode] = useState<Mode>('FFA');
+
+  const ranked = [...players].sort((a, b) => {
+    if (mode === 'FFA') return b.ffaScore - a.ffaScore;
+    return b.teamScore - a.teamScore;
+  });
 
   return (
     <section>
-      <div className="mb-4 flex items-baseline justify-between border-b border-zinc-800 pb-2">
-        <h1 className="text-sm font-bold uppercase tracking-widest text-zinc-100">
-          Global FFA Leaderboard
-        </h1>
-        <span className="font-mono text-xs text-zinc-500">
-          {ranked.length} players
-        </span>
+      <div className="mb-4 flex flex-col gap-4 border-b border-zinc-800 pb-4 sm:flex-row sm:items-baseline sm:justify-between">
+        <div>
+          <h1 className="text-sm font-bold uppercase tracking-widest text-zinc-100">
+            Global Leaderboard
+          </h1>
+          <div className="mt-1 flex items-center gap-4 font-mono text-[10px] text-zinc-500">
+            <span>{ranked.length} players tracked</span>
+            <span className="text-zinc-700">|</span>
+            <span>Last Ingest: {new Date().toLocaleDateString()}</span>
+          </div>
+        </div>
+
+        <div className="flex bg-zinc-900 p-0.5">
+          {(['FFA', 'Teams'] as Mode[]).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              className={`px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${
+                mode === m
+                  ? 'bg-accent text-zinc-900'
+                  : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="overflow-x-auto border border-zinc-800">
@@ -31,12 +59,10 @@ export default function Leaderboard() {
               <th className={`${headCell} w-12 text-left`}>#</th>
               <th className={`${headCell} text-left`}>Player</th>
               <th className={`${headCell} text-left`}>Clan</th>
-              <th className={headCell}>ELO</th>
-              <th className={headCell}>W</th>
-              <th className={headCell}>L</th>
-              <th className={headCell}>Win%</th>
+              <th className={headCell}>{mode} Score</th>
+              <th className={headCell}>{mode} Wins</th>
               <th className={headCell}>K/D</th>
-              <th className={headCell}>Matches</th>
+              <th className={headCell}>ELO</th>
             </tr>
           </thead>
           <tbody>
@@ -59,14 +85,14 @@ export default function Leaderboard() {
                 <td className="px-3 py-1.5 font-mono text-xs text-zinc-500">
                   {player.clanTag ?? '—'}
                 </td>
-                <td className={`${cell} font-semibold text-zinc-100`}>
-                  {player.elo}
+                <td className={`${cell} font-semibold text-accent`}>
+                  {(mode === 'FFA' ? player.ffaScore : player.teamScore).toLocaleString()}
                 </td>
-                <td className={cell}>{player.wins}</td>
-                <td className={cell}>{player.losses}</td>
-                <td className={cell}>{pct(winRate(player))}</td>
+                <td className={cell}>
+                  {mode === 'FFA' ? player.ffaWins : player.teamWins}
+                </td>
                 <td className={cell}>{player.kd.toFixed(2)}</td>
-                <td className={`${cell} text-zinc-500`}>{player.matches}</td>
+                <td className={cell}>{player.elo}</td>
               </tr>
             ))}
           </tbody>

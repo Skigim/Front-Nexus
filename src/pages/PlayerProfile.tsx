@@ -72,13 +72,63 @@ export default function PlayerProfile() {
         </span>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-px bg-zinc-800 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="mt-4 grid grid-cols-2 gap-px bg-zinc-800 sm:grid-cols-4 lg:grid-cols-4">
         <StatTile label="ELO" value={String(player.elo)} emphasize />
+        <StatTile label="Peak Rank" value={`#${player.peakPosition}`} />
         <StatTile label="K/D" value={player.kd.toFixed(2)} />
         <StatTile label="Win%" value={`${(winRate(player) * 100).toFixed(1)}%`} />
-        <StatTile label="Wins" value={String(player.wins)} />
-        <StatTile label="Losses" value={String(player.losses)} />
-        <StatTile label="Matches" value={String(player.matches)} />
+      </div>
+
+      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="border border-zinc-800 bg-zinc-900/40 p-4">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-accent">FFA Performance</h2>
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            <div>
+              <div className="text-[10px] font-semibold uppercase text-zinc-500">Wins</div>
+              <div className="stat-num text-xl text-zinc-100">{player.ffaWins}</div>
+            </div>
+            <div>
+              <div className="text-[10px] font-semibold uppercase text-zinc-500">Total Score</div>
+              <div className="stat-num text-xl text-zinc-100">{player.ffaScore.toLocaleString()}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="border border-zinc-800 bg-zinc-900/40 p-4">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-blue-400">Team Performance</h2>
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            <div>
+              <div className="text-[10px] font-semibold uppercase text-zinc-500">Wins</div>
+              <div className="stat-num text-xl text-zinc-100">{player.teamWins}</div>
+            </div>
+            <div>
+              <div className="text-[10px] font-semibold uppercase text-zinc-500">Total Score</div>
+              <div className="stat-num text-xl text-zinc-100">{player.teamScore.toLocaleString()}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-8 border border-zinc-800 bg-zinc-900/40 p-4">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-zinc-400">Lifetime Summary</h2>
+        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div>
+            <div className="text-[10px] font-semibold uppercase text-zinc-500">Total Matches</div>
+            <div className="stat-num text-lg text-zinc-300">{player.matches}</div>
+          </div>
+          <div>
+            <div className="text-[10px] font-semibold uppercase text-zinc-500">Total Wins</div>
+            <div className="stat-num text-lg text-zinc-300">{player.wins}</div>
+          </div>
+          <div>
+            <div className="text-[10px] font-semibold uppercase text-zinc-500">Avg Score</div>
+            <div className="stat-num text-lg text-zinc-300">{player.avgScorePerMatch.toFixed(1)}</div>
+          </div>
+          <div>
+            <div className="text-[10px] font-semibold uppercase text-zinc-500">Overall Score</div>
+            <div className="stat-num text-lg text-zinc-300">{player.totalScore.toLocaleString()}</div>
+          </div>
+        </div>
       </div>
     </section>
   );

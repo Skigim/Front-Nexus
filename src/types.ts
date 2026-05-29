@@ -17,6 +17,16 @@ export interface PlayerStats {
   matches: number;
   /** ISO date string of the player's most recent match. */
   lastActive: string;
+  // Extended Stats Inferred from CSVs
+  totalScore: number;
+  avgScorePerMatch: number;
+  peakPosition: number;
+  // FFA specific
+  ffaWins: number;
+  ffaScore: number;
+  // Team specific
+  teamWins: number;
+  teamScore: number;
 }
 
 export interface ClanRanking {
@@ -29,4 +39,10 @@ export interface ClanRanking {
   members: number;
   wins: number;
   losses: number;
+  // FFA specific
+  ffaWins: number;
+  ffaScore: number;
+  // Team specific
+  teamWins: number;
+  teamScore: number;
 }

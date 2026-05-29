@@ -27,3 +27,6 @@ node_modules/.tmp
 .env
 .env.local
 .env.*.local
+
+# Database references and large CSVs
+ref/

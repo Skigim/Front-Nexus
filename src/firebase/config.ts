@@ -30,19 +30,45 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+// If the API key is missing, we operate in mock mode to avoid connection errors.
+const isMock = !firebaseConfig.apiKey;
+
 // Provider id of the Discord OIDC integration configured in the Firebase console.
 const DISCORD_PROVIDER_ID =
   import.meta.env.VITE_DISCORD_OIDC_PROVIDER_ID || 'oidc.discord';
 
-export const app: FirebaseApp = initializeApp(firebaseConfig);
-export const db: Firestore = getFirestore(app);
-export const auth: Auth = getAuth(app);
+let appInstance: any;
+let dbInstance: any;
+let authInstance: any;
+
+if (isMock) {
+  // Minimal mocks that satisfy the Navbar and other parts of the app.
+  appInstance = { name: 'mock-app', options: {} };
+  dbInstance = { type: 'firestore' };
+  authInstance = {
+    currentUser: null,
+    onAuthStateChanged: (callback: any) => {
+      // Simulate no user logged in.
+      callback(null);
+      return () => {};
+    },
+  };
+} else {
+  appInstance = initializeApp(firebaseConfig);
+  dbInstance = getFirestore(appInstance);
+  authInstance = getAuth(appInstance);
+}
+
+export const app: FirebaseApp = appInstance;
+export const db: Firestore = dbInstance;
+export const auth: Auth = authInstance;
 
 /**
  * Build the Discord OAuth provider. Scopes mirror Discord's OAuth2 surface so
  * we can read the user's identity after sign-in.
  */
 export function getDiscordProvider(): OAuthProvider {
+  if (isMock) return { addScope: () => {} } as any;
   const provider = new OAuthProvider(DISCORD_PROVIDER_ID);
   provider.addScope('identify');
   provider.addScope('email');
@@ -51,10 +77,14 @@ export function getDiscordProvider(): OAuthProvider {
 
 /** Launch the Discord OAuth popup flow. */
 export function loginWithDiscord(): Promise<UserCredential> {
+  if (isMock) {
+    return Promise.reject(new Error('Firebase not configured. Login is disabled.'));
+  }
   return signInWithPopup(auth, getDiscordProvider());
 }
 
 /** Sign the current user out. */
 export function logout(): Promise<void> {
+  if (isMock) return Promise.resolve();
   return firebaseSignOut(auth);
 }
