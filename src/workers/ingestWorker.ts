@@ -58,8 +58,6 @@ const ClanLeaderboardItemSchema = z.object({
   weightedWLRatio: z.coerce.number().optional().default(0),
 });
 
-const ClanLeaderboardResponseSchema = z.array(ClanLeaderboardItemSchema);
-
 if (!firebaseConfig.apiKey) {
   console.error('❌ Error: VITE_FIREBASE_API_KEY is missing in .env.local');
   process.exit(1);

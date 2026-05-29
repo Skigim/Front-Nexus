@@ -47,7 +47,6 @@ async function discover() {
   const seedPlayerIds = playersSnap.docs.map(doc => doc.id);
 
   const discoveredGameIds = new Set<string>();
-  const discoveredPlayerIds = new Set<string>();
 
   // 2. Fetch game IDs from player profiles
   console.log(`📡 Fetching match history for ${seedPlayerIds.length} seed players...`);

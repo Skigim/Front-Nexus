@@ -42,6 +42,8 @@ export interface ClanRanking {
   members: number;
   wins: number;
   losses: number;
+  games: number;
+  weightedWLRatio: number;
   // FFA specific
   ffaWins: number;
   ffaScore: number;

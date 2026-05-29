@@ -3,15 +3,10 @@ import { Link } from 'react-router-dom';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { type Player } from '../types';
-import { winRate } from '../utils';
 
 const cell = 'px-3 py-1.5 text-right stat-num text-zinc-300';
 const headCell =
   'px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-zinc-500';
-
-function pct(value: number): string {
-  return `${(value * 100).toFixed(1)}%`;
-}
 
 type Mode = 'FFA' | 'Teams';
 
