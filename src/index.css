@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-zinc-950 text-zinc-200 antialiased;
+    font-feature-settings: 'tnum' 1; /* tabular numbers everywhere */
+  }
+
+  /* Tabular, monospaced numerics keep stat columns aligned. */
+  .stat-num {
+    @apply font-mono tabular-nums;
+  }
+}
