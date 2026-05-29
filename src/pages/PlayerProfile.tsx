@@ -37,12 +37,12 @@ export default function PlayerProfile() {
   useEffect(() => {
     if (!playerId) return;
 
-    const docRef = doc(db, 'players', playerId);
-
     if (isMock) {
       setLoading(false);
       return;
     }
+
+    const docRef = doc(db, 'players', playerId);
 
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {

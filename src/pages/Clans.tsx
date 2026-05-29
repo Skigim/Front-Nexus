@@ -3,27 +3,27 @@ import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestor
 import { db, isMock } from '../firebase/config';
 import type { ClanRanking } from '../types';
 
-const cell = 'px-3 py-1.5 text-right stat-num text-zinc-300';
-const headCell =
-  'px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-zinc-500';
-
 /** Clan rankings table. */
 export default function Clans() {
+  const cell = 'px-3 py-1.5 text-right stat-num text-zinc-300';
+  const headCell =
+    'px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-zinc-500';
+
   const [ranked, setRanked] = useState<ClanRanking[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'elo' | 'games'>('elo');
 
   useEffect(() => {
+    if (isMock) {
+      setLoading(false);
+      return;
+    }
+
     const q = query(
       collection(db, 'clans'),
       orderBy(sortBy, 'desc'),
       limit(100)
     );
-
-    if (isMock) {
-      setLoading(false);
-      return;
-    }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({

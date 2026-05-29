@@ -4,19 +4,24 @@ import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestor
 import { db, isMock } from '../firebase/config';
 import { type Player } from '../types';
 
-const cell = 'px-3 py-1.5 text-right stat-num text-zinc-300';
-const headCell =
-  'px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-zinc-500';
-
 type Mode = 'FFA' | 'Teams';
 
 /** Global leaderboard — toggles between FFA and Teams. */
 export default function Leaderboard() {
+  const cell = 'px-3 py-1.5 text-right stat-num text-zinc-300';
+  const headCell =
+    'px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-zinc-500';
+
   const [mode, setMode] = useState<Mode>('FFA');
   const [loading, setLoading] = useState(true);
   const [playersList, setPlayersList] = useState<Player[]>([]);
 
   useEffect(() => {
+    if (isMock) {
+      setLoading(false);
+      return;
+    }
+
     // Determine sort field based on mode
     const sortField = mode === 'FFA' ? 'ffaScore' : 'teamScore';
     
@@ -26,11 +31,6 @@ export default function Leaderboard() {
       limit(100)
     );
 
-    if (isMock) {
-      setLoading(false);
-      return;
-    }
-
     const unsubscribe = onSnapshot(q, (snapshot) => {
       console.log(`[Firestore] Received update: ${snapshot.size} players`);
       const data = snapshot.docs.map(doc => ({
@@ -39,6 +39,9 @@ export default function Leaderboard() {
       })) as Player[];
       
       setPlayersList(data);
+      setLoading(false);
+    }, (error) => {
+      console.error("[Firestore] Subscription error:", error);
       setLoading(false);
     });
 
