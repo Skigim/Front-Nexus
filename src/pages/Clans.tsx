@@ -11,12 +11,13 @@ const headCell =
 export default function Clans() {
   const [ranked, setRanked] = useState<ClanRanking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<'elo' | 'games'>('elo');
 
   useEffect(() => {
     const q = query(
       collection(db, 'clans'),
-      orderBy('elo', 'desc'),
-      limit(50)
+      orderBy(sortBy, 'desc'),
+      limit(100)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -29,7 +30,7 @@ export default function Clans() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [sortBy]);
 
   if (loading) {
     return (
@@ -43,14 +44,35 @@ export default function Clans() {
 
   return (
     <section>
-      <div className="mb-4 flex items-baseline justify-between border-b border-zinc-800 pb-2">
-        <h1 className="text-sm font-bold uppercase tracking-widest text-zinc-100">
-          Clan Rankings
-        </h1>
-        <div className="flex items-center gap-4 font-mono text-[10px] text-zinc-500">
-          <span>{ranked.length} clans active</span>
-          <span className="text-zinc-700">|</span>
-          <span className="text-accent animate-pulse">● LIVE DATA</span>
+      <div className="mb-4 flex flex-col gap-4 border-b border-zinc-800 pb-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-sm font-bold uppercase tracking-widest text-zinc-100">
+            Clan Rankings
+          </h1>
+          <div className="mt-1 flex items-center gap-4 font-mono text-[10px] text-zinc-500">
+            <span>{ranked.length} clans active</span>
+            <span className="text-zinc-700">|</span>
+            <span className="text-accent animate-pulse">● LIVE DATA</span>
+          </div>
+        </div>
+
+        <div className="flex bg-zinc-950 p-1 border border-zinc-800">
+          <button
+            onClick={() => setSortBy('elo')}
+            className={`px-3 py-1 text-[10px] font-bold uppercase tracking-tighter transition-colors ${
+              sortBy === 'elo' ? 'bg-zinc-800 text-accent' : 'text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            Performance
+          </button>
+          <button
+            onClick={() => setSortBy('games')}
+            className={`px-3 py-1 text-[10px] font-bold uppercase tracking-tighter transition-colors ${
+              sortBy === 'games' ? 'bg-zinc-800 text-accent' : 'text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            Activity
+          </button>
         </div>
       </div>
 
@@ -61,10 +83,10 @@ export default function Clans() {
               <th className={`${headCell} w-12 text-left`}>#</th>
               <th className={`${headCell} text-left`}>Tag</th>
               <th className={`${headCell} text-left`}>Clan</th>
-              <th className={headCell}>ELO</th>
-              <th className={headCell}>FFA Score</th>
-              <th className={headCell}>Team Score</th>
-              <th className={headCell}>Total Wins</th>
+              <th className={headCell}>{sortBy === 'elo' ? 'ELO' : 'GAMES'}</th>
+              <th className={headCell}>W/L RATIO</th>
+              <th className={headCell}>WINS</th>
+              <th className={headCell}>LOSSES</th>
             </tr>
           </thead>
           <tbody>
@@ -83,11 +105,15 @@ export default function Clans() {
                   {clan.name}
                 </td>
                 <td className={`${cell} font-semibold text-zinc-100`}>
-                  {(clan.elo || 0).toLocaleString()}
+                  {sortBy === 'elo' 
+                    ? (clan.elo || 0).toLocaleString() 
+                    : (clan.games || 0).toLocaleString()}
                 </td>
-                <td className={cell}>{(clan.ffaScore || 0).toLocaleString()}</td>
-                <td className={cell}>{(clan.teamScore || 0).toLocaleString()}</td>
+                <td className={cell}>
+                  {(clan.weightedWLRatio || 0).toFixed(2)}
+                </td>
                 <td className={cell}>{(clan.wins || 0).toLocaleString()}</td>
+                <td className={cell}>{(clan.losses || 0).toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
