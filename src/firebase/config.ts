@@ -31,7 +31,7 @@ const firebaseConfig = {
 };
 
 // If the API key is missing, we operate in mock mode to avoid connection errors.
-const isMock = !firebaseConfig.apiKey;
+export const isMock = !firebaseConfig.apiKey;
 
 // Provider id of the Discord OIDC integration configured in the Firebase console.
 const DISCORD_PROVIDER_ID =

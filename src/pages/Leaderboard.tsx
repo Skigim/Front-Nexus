@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { db, isMock } from '../firebase/config';
 import { type Player } from '../types';
 
 const cell = 'px-3 py-1.5 text-right stat-num text-zinc-300';
@@ -25,6 +25,11 @@ export default function Leaderboard() {
       orderBy(sortField, 'desc'),
       limit(100)
     );
+
+    if (isMock) {
+      setLoading(false);
+      return;
+    }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       console.log(`[Firestore] Received update: ${snapshot.size} players`);

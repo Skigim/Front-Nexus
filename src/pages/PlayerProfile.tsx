@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { db, isMock } from '../firebase/config';
 import { type Player } from '../types';
 import { winRate } from '../utils';
 
@@ -38,6 +38,12 @@ export default function PlayerProfile() {
     if (!playerId) return;
 
     const docRef = doc(db, 'players', playerId);
+
+    if (isMock) {
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         setPlayer({ id: docSnap.id, ...docSnap.data() } as Player);

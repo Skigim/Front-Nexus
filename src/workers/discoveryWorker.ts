@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, collection, getDocs, writeBatch, serverTimestamp, query, limit } from 'firebase/firestore';
+import { getFirestore, doc, collection, getDocs, writeBatch, serverTimestamp } from 'firebase/firestore';
 import * as dotenv from 'dotenv';
 import { resolve } from 'path';
 import { z } from 'zod';
@@ -40,17 +40,20 @@ const GameResponseSchema = z.object({
 });
 
 async function discover() {
-  console.log('🔍 Starting Discovery Worker (Game Scraping)...');
+  console.log('🔍 Starting Deep Exhaustive Crawler...');
 
-  // 1. Get seed players from existing Firestore
-  const playersSnap = await getDocs(query(collection(db, 'players'), limit(50)));
-  const seedPlayerIds = playersSnap.docs.map(doc => doc.id);
+  // 1. Get ALL players from our current DB to find their full history
+  // Initially we fetch more seed players to expand the net
+  const playersSnap = await getDocs(collection(db, 'players'));
+  const allKnownPlayerIds = playersSnap.docs.map(doc => doc.id);
+  
+  console.log(`📡 Current Database: ${allKnownPlayerIds.length} players. Crawling their match history...`);
 
   const discoveredGameIds = new Set<string>();
 
-  // 2. Fetch game IDs from player profiles
-  console.log(`📡 Fetching match history for ${seedPlayerIds.length} seed players...`);
-  for (const publicId of seedPlayerIds) {
+  // 2. Deep Match Extraction
+  // We don't just get 20, we want to sniff out every game we can find
+  for (const publicId of allKnownPlayerIds) {
     try {
       const res = await fetch(`${OPENFRONT_API}/player/${publicId}`);
       if (!res.ok) continue;
@@ -61,62 +64,70 @@ async function discover() {
           if (g.gameId) discoveredGameIds.add(g.gameId);
         });
       }
-      await sleep(55); // Rate limit
+      // Speed up slightly but stay safe
+      await sleep(40); 
     } catch (e) {
-      console.error(`Failed to fetch profile for ${publicId}`);
+      console.error(`Failed to fetch history for ${publicId}`);
     }
   }
 
-  console.log(`📦 Found ${discoveredGameIds.size} unique game IDs. Scraping details...`);
+  console.log(`📦 Exhaustive list built: ${discoveredGameIds.size} total unique games found.`);
+  console.log('⚙️ Starting deep scrape of game logs...');
 
-  // 3. Scrape games for new players
+  // 3. Scrape EVERYTHING
   let batch = writeBatch(db);
   let batchSize = 0;
+  let gamesProcessed = 0;
+  let newPlayersFound = 0;
 
-  for (const gameId of Array.from(discoveredGameIds).slice(0, 20)) { // Limit to 20 games for initial test
+  for (const gameId of Array.from(discoveredGameIds)) {
     try {
+      // Check if we've already processed this game? 
+      // For now, we overwrite to keep stats fresh-ish
+      
       const res = await fetch(`${OPENFRONT_API}/game/${gameId}`);
       if (!res.ok) continue;
       const json = await res.json();
       const gameData = GameResponseSchema.parse(json);
 
-      console.log(`🎮 Scraping game ${gameId} (${gameData.info.players.length} players)...`);
-
+      gamesProcessed++;
+      
       for (const p of gameData.info.players) {
-        // Since we can't reliably get the publicId (profile ID) from the game log (clientID changes)
-        // We will store them in a 'discovered_players' collection for now, or attempt to find their profile
-        // Wait, what if we use an index of username -> publicId? 
-        // For now, let's just log them.
-        
-        // If we want to truly grow the database, we need the public_id. 
-        // The game log doesn't have it. 
-        // But wait... the 'persistentID' might be it if it's not null.
         if (p.persistentID) {
            const playerRef = doc(db, 'players', p.persistentID);
            batch.set(playerRef, {
              username: p.username,
              clanTag: p.clanTag || null,
-             discoveredVia: gameId,
-             updatedAt: serverTimestamp()
+             lastSeenGame: gameId,
+             updatedAt: serverTimestamp(),
+             // We can also store game metadata here if needed
            }, { merge: true });
            batchSize++;
+           newPlayersFound++;
         }
       }
 
-      await sleep(100); // Respect API
+      if (gamesProcessed % 20 === 0) {
+        console.log(`📊 Progress: ${gamesProcessed}/${discoveredGameIds.size} games | ${newPlayersFound} player records updated.`);
+      }
+
+      await sleep(40); 
     } catch (e) {
-      // console.error(`Failed to scrape game ${gameId}`);
+      // Ignore parse/fetch errors
     }
 
-    if (batchSize >= 400) {
+    if (batchSize >= 450) {
       await batch.commit();
       batch = writeBatch(db);
       batchSize = 0;
+      console.log('💾 Firestore Batch Sync Complete.');
     }
   }
 
   if (batchSize > 0) await batch.commit();
-  console.log('✅ Discovery run complete.');
+  console.log(`✅ EXHAUSTIVE CRAWL COMPLETE.`);
+  console.log(`🏁 Total Games Scanned: ${gamesProcessed}`);
+  console.log(`👤 Total Player/Game Links Processed: ${newPlayersFound}`);
 }
 
 discover();
