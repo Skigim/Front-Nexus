@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { auth, loginWithDiscord, logout } from '../firebase/config';
+import { auth, logout } from '../firebase/config';
 
 const navItems = [
   { label: 'Leaderboards', to: '/' },
@@ -19,7 +19,6 @@ function navLinkClass({ isActive }: { isActive: boolean }): string {
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(auth.currentUser);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => onAuthStateChanged(auth, setUser), []);
 
