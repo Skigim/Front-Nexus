@@ -53,9 +53,6 @@ export default function Navbar() {
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
-          {error && (
-            <span className="font-mono text-[11px] text-accent">{error}</span>
-          )}
           {user ? (
             <div className="flex items-center gap-3">
               <span className="font-mono text-xs text-zinc-400">

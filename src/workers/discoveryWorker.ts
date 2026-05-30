@@ -30,10 +30,18 @@ const GameResponseSchema = z.object({
       gameMode: z.string(),
       gameType: z.string(),
     }),
+    results: z.array(z.object({
+      clientID: z.string(),
+      score: z.number().optional(),
+      kills: z.number().optional(),
+      deaths: z.number().optional(),
+      position: z.number().optional(),
+      won: z.boolean().optional(),
+    })).optional(),
     players: z.array(z.object({
       username: z.string(),
       clanTag: z.string().nullable().optional(),
-      persistentID: z.string().nullable().optional(), // This is often null, but we'll try to use it
+      persistentID: z.string().nullable().optional(),
       clientID: z.string(),
     })),
   }),
@@ -42,8 +50,6 @@ const GameResponseSchema = z.object({
 async function discover() {
   console.log('🔍 Starting Deep Exhaustive Crawler...');
 
-  // 1. Get ALL players from our current DB to find their full history
-  // Initially we fetch more seed players to expand the net
   const playersSnap = await getDocs(collection(db, 'players'));
   const allKnownPlayerIds = playersSnap.docs.map(doc => doc.id);
   
@@ -51,8 +57,6 @@ async function discover() {
 
   const discoveredGameIds = new Set<string>();
 
-  // 2. Deep Match Extraction
-  // We don't just get 20, we want to sniff out every game we can find
   for (const publicId of allKnownPlayerIds) {
     try {
       const res = await fetch(`${OPENFRONT_API}/player/${publicId}`);
@@ -64,44 +68,55 @@ async function discover() {
           if (g.gameId) discoveredGameIds.add(g.gameId);
         });
       }
-      // Speed up slightly but stay safe
-      await sleep(40); 
+      await sleep(20); 
     } catch (e) {
       console.error(`Failed to fetch history for ${publicId}`);
     }
   }
 
   console.log(`📦 Exhaustive list built: ${discoveredGameIds.size} total unique games found.`);
-  console.log('⚙️ Starting deep scrape of game logs...');
+  console.log('⚙️ Starting deep scrape of game logs and extended stats...');
 
-  // 3. Scrape EVERYTHING
   let batch = writeBatch(db);
   let batchSize = 0;
   let gamesProcessed = 0;
   let newPlayersFound = 0;
 
-  for (const gameId of Array.from(discoveredGameIds)) {
+  for (const gameId of Array.from(discoveredGameIds).reverse()) {
     try {
-      // Check if we've already processed this game? 
-      // For now, we overwrite to keep stats fresh-ish
-      
       const res = await fetch(`${OPENFRONT_API}/game/${gameId}`);
       if (!res.ok) continue;
       const json = await res.json();
       const gameData = GameResponseSchema.parse(json);
 
       gamesProcessed++;
+      const gameType = gameData.info.config.gameType;
       
       for (const p of gameData.info.players) {
         if (p.persistentID) {
+           const result = gameData.info.results?.find(r => r.clientID === p.clientID);
            const playerRef = doc(db, 'players', p.persistentID);
-           batch.set(playerRef, {
+
+           const statsUpdate: any = {
              username: p.username,
              clanTag: p.clanTag || null,
              lastSeenGame: gameId,
              updatedAt: serverTimestamp(),
-             // We can also store game metadata here if needed
-           }, { merge: true });
+           };
+
+           if (result) {
+              const gameTypeKey = `gameTypeStats.${gameType}`;
+              statsUpdate[gameTypeKey] = {
+                wins: (result.won ? 1 : 0),
+                matches: 1,
+                score: (result.score || 0),
+              };
+              statsUpdate.totalScore = (result.score || 0);
+              statsUpdate.wins = (result.won ? 1 : 0);
+              statsUpdate.matches = 1;
+           }
+
+           batch.set(playerRef, statsUpdate, { merge: true });
            batchSize++;
            newPlayersFound++;
         }
@@ -111,9 +126,8 @@ async function discover() {
         console.log(`📊 Progress: ${gamesProcessed}/${discoveredGameIds.size} games | ${newPlayersFound} player records updated.`);
       }
 
-      await sleep(40); 
+      await sleep(20); 
     } catch (e) {
-      // Ignore parse/fetch errors
     }
 
     if (batchSize >= 450) {

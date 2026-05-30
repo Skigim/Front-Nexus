@@ -4,15 +4,15 @@ import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestor
 import { db, isMock } from '../firebase/config';
 import { type Player } from '../types';
 
-type Mode = 'FFA' | 'Teams';
+type Mode = 'Ranked' | 'Global';
 
-/** Global leaderboard — toggles between FFA and Teams. */
+/** Unified leaderboard — toggles between Official Ranked and Global Scraped data. */
 export default function Leaderboard() {
   const cell = 'px-3 py-1.5 text-right stat-num text-zinc-300';
   const headCell =
     'px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-zinc-500';
 
-  const [mode, setMode] = useState<Mode>('FFA');
+  const [mode, setMode] = useState<Mode>('Ranked');
   const [loading, setLoading] = useState(true);
   const [playersList, setPlayersList] = useState<Player[]>([]);
 
@@ -23,7 +23,8 @@ export default function Leaderboard() {
     }
 
     // Determine sort field based on mode
-    const sortField = mode === 'FFA' ? 'ffaScore' : 'teamScore';
+    // Ranked uses the official ELO, Global uses total cumulative score from scrapes
+    const sortField = mode === 'Ranked' ? 'elo' : 'totalScore';
     
     const q = query(
       collection(db, 'players'),
@@ -55,7 +56,7 @@ export default function Leaderboard() {
     return (
       <div className="flex h-64 items-center justify-center">
         <div className="stat-num text-zinc-500 animate-pulse uppercase tracking-widest text-xs">
-          Connecting to Front-Nexus Live Stats...
+          Syncing Leaderboards...
         </div>
       </div>
     );
@@ -66,17 +67,17 @@ export default function Leaderboard() {
       <div className="mb-4 flex flex-col gap-4 border-b border-zinc-800 pb-4 sm:flex-row sm:items-baseline sm:justify-between">
         <div>
           <h1 className="text-sm font-bold uppercase tracking-widest text-zinc-100">
-            Global Leaderboard
+            {mode} Standings
           </h1>
           <div className="mt-1 flex items-center gap-4 font-mono text-[10px] text-zinc-500">
-            <span>{playersList.length} players tracked</span>
+            <span>{playersList.length} players listed</span>
             <span className="text-zinc-700">|</span>
-            <span className="text-accent animate-pulse">● LIVE FIRESTORE</span>
+            <span className="text-accent animate-pulse">● LIVE UPDATE</span>
           </div>
         </div>
 
-        <div className="flex bg-zinc-900 p-0.5">
-          {(['FFA', 'Teams'] as Mode[]).map((m) => (
+        <div className="flex bg-zinc-900 p-0.5 border border-zinc-800">
+          {(['Ranked', 'Global'] as Mode[]).map((m) => (
             <button
               key={m}
               onClick={() => {
@@ -102,8 +103,8 @@ export default function Leaderboard() {
               <th className={`${headCell} w-12 text-left`}>#</th>
               <th className={`${headCell} text-left`}>Player</th>
               <th className={`${headCell} text-left`}>Clan</th>
-              <th className={headCell}>{mode} Score</th>
-              <th className={headCell}>{mode} Wins</th>
+              <th className={headCell}>Score</th>
+              <th className={headCell}>Wins</th>
               <th className={headCell}>K/D</th>
               <th className={headCell}>ELO</th>
             </tr>
@@ -114,7 +115,7 @@ export default function Leaderboard() {
                 key={player.id}
                 className="border-b border-zinc-800/70 odd:bg-zinc-950 even:bg-zinc-900/40 hover:bg-zinc-800/40"
               >
-                <td className="px-3 py-1.5 stat-num text-zinc-500">
+                <td className="px-3 py-1.5 stat-num text-zinc-500 text-right">
                   {index + 1}
                 </td>
                 <td className="px-3 py-1.5">
@@ -129,10 +130,10 @@ export default function Leaderboard() {
                   {player.clanTag ?? '—'}
                 </td>
                 <td className={`${cell} font-semibold text-accent`}>
-                  {(mode === 'FFA' ? player.ffaScore : player.teamScore).toLocaleString()}
+                  {player.totalScore.toLocaleString()}
                 </td>
                 <td className={cell}>
-                  {mode === 'FFA' ? player.ffaWins : player.teamWins}
+                  {player.wins.toLocaleString()}
                 </td>
                 <td className={cell}>{player.kd.toFixed(2)}</td>
                 <td className={cell}>{player.elo}</td>
