@@ -24,15 +24,7 @@ export default function Navbar() {
   useEffect(() => onAuthStateChanged(auth, setUser), []);
 
   async function handleLogin() {
-    setBusy(true);
-    setError(null);
-    try {
-      await loginWithDiscord();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign-in failed');
-    } finally {
-      setBusy(false);
-    }
+    alert("Discord Integration Coming Soon!\n\nWe're currently finalizing the OIDC handshake logic to link your OpenFront profile safely.");
   }
 
   async function handleLogout() {
