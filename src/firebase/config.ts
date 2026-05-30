@@ -30,6 +30,12 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+console.log("[Firebase] Config check:", {
+  hasApiKey: !!firebaseConfig.apiKey,
+  projectId: firebaseConfig.projectId,
+  isMock: !firebaseConfig.apiKey
+});
+
 // If the API key is missing, we operate in mock mode to avoid connection errors.
 export const isMock = !firebaseConfig.apiKey;
 

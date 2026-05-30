@@ -33,6 +33,9 @@ export default function Leaderboard() {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       console.log(`[Firestore] Received update: ${snapshot.size} players`);
+      if (snapshot.empty) {
+        console.warn("[Firestore] Results are empty!");
+      }
       const data = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
