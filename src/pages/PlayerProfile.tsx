@@ -11,24 +11,33 @@ interface StatTileProps {
   emphasize?: boolean;
 }
 
+// Firestore queue payloads can be partial and vary by ingestion source naming.
 type GameTypeStat = Partial<Record<'wins' | 'matches' | 'score', number>>;
+type LegacyPlayerFields = {
+  totalGames?: number;
+  total_games?: number;
+  games?: number;
+};
+type QueueKey = 'FFA' | 'Team' | 'Modified';
+
+const QUEUE_ALIASES: Record<QueueKey, string[]> = {
+  // In historical snapshots, 1v1 stats were used as the FFA-equivalent queue,
+  // and duel stats were grouped under the profile's "Modified" section.
+  FFA: ['FFA', '1v1', 'ffa', 'ranked_ffa'],
+  Team: ['Team', 'Teams', 'team', 'ranked_teams'],
+  Modified: ['Modified', 'modified', 'Duel', 'duel', 'ranked_duel', 'ranked_modified'],
+};
 
 function toNumber(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
-function getTotalMatches(player: Player): number {
-  const legacyPlayer = player as Player & {
-    totalGames?: number;
-    total_games?: number;
-    games?: number;
-  };
-
+function getTotalMatches(player: Player & LegacyPlayerFields): number {
   const directMatches =
     toNumber(player.matches) ||
-    toNumber(legacyPlayer.totalGames) ||
-    toNumber(legacyPlayer.total_games) ||
-    toNumber(legacyPlayer.games);
+    toNumber(player.totalGames) ||
+    toNumber(player.total_games) ||
+    toNumber(player.games);
 
   if (directMatches > 0) return directMatches;
   return toNumber(player.wins) + toNumber(player.losses);
@@ -36,19 +45,18 @@ function getTotalMatches(player: Player): number {
 
 function getQueueStats(
   gameTypeStats: Player['gameTypeStats'],
-  queue: 'FFA' | 'Team' | 'Modified'
+  queue: QueueKey
 ): GameTypeStat | undefined {
   if (!gameTypeStats) return undefined;
 
-  const queueAliases: Record<typeof queue, string[]> = {
-    FFA: ['FFA', '1v1', 'ffa', 'ranked_ffa'],
-    Team: ['Team', 'Teams', 'team', 'ranked_teams'],
-    Modified: ['Modified', 'Duel', 'duel', 'ranked_duel', 'unknown'],
-  };
-
-  for (const key of queueAliases[queue]) {
+  for (const key of QUEUE_ALIASES[queue]) {
     const stats = gameTypeStats[key] as GameTypeStat | undefined;
-    if (stats) return stats;
+    if (
+      stats &&
+      (toNumber(stats.wins) > 0 || toNumber(stats.matches) > 0 || toNumber(stats.score) > 0)
+    ) {
+      return stats;
+    }
   }
 
   return undefined;
