@@ -11,6 +11,57 @@ interface StatTileProps {
   emphasize?: boolean;
 }
 
+// Firestore queue payloads can be partial and vary by ingestion source naming.
+type GameTypeStat = Partial<Record<'wins' | 'matches' | 'score', number>>;
+type LegacyPlayerFields = {
+  totalGames?: number;
+  total_games?: number;
+  games?: number;
+};
+type QueueKey = 'FFA' | 'Team' | 'Modified';
+
+const QUEUE_ALIASES: Record<QueueKey, string[]> = {
+  // In historical snapshots, 1v1 stats were used as the FFA-equivalent queue,
+  // and duel stats were grouped under the profile's "Modified" section.
+  FFA: ['FFA', '1v1', 'ffa', 'ranked_ffa'],
+  Team: ['Team', 'Teams', 'team', 'ranked_teams'],
+  Modified: ['Modified', 'modified', 'Duel', 'duel', 'ranked_duel', 'ranked_modified'],
+};
+
+function toNumber(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function getTotalMatches(player: Player & LegacyPlayerFields): number {
+  const directMatches =
+    toNumber(player.matches) ||
+    toNumber(player.totalGames) ||
+    toNumber(player.total_games) ||
+    toNumber(player.games);
+
+  if (directMatches > 0) return directMatches;
+  return toNumber(player.wins) + toNumber(player.losses);
+}
+
+function getQueueStats(
+  gameTypeStats: Player['gameTypeStats'],
+  queue: QueueKey
+): GameTypeStat | undefined {
+  if (!gameTypeStats) return undefined;
+
+  for (const key of QUEUE_ALIASES[queue]) {
+    const stats = gameTypeStats[key] as GameTypeStat | undefined;
+    if (
+      stats &&
+      (toNumber(stats.wins) > 0 || toNumber(stats.matches) > 0 || toNumber(stats.score) > 0)
+    ) {
+      return stats;
+    }
+  }
+
+  return undefined;
+}
+
 function StatTile({ label, value, emphasize }: StatTileProps) {
   return (
     <div className="border border-zinc-800 bg-zinc-900/40 px-4 py-3">
@@ -116,7 +167,7 @@ export default function PlayerProfile() {
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
         {(['FFA', 'Team', 'Modified'] as const).map(q => {
-          const stats = player.gameTypeStats?.[q];
+          const stats = getQueueStats(player.gameTypeStats, q);
           const color = q === 'FFA' ? 'text-accent' : q === 'Team' ? 'text-blue-400' : 'text-purple-400';
           
           return (
@@ -146,7 +197,7 @@ export default function PlayerProfile() {
         <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div>
             <div className="text-[10px] font-semibold uppercase text-zinc-500">Total Matches</div>
-            <div className="stat-num text-lg text-zinc-300">{player.matches}</div>
+            <div className="stat-num text-lg text-zinc-300">{getTotalMatches(player)}</div>
           </div>
           <div>
             <div className="text-[10px] font-semibold uppercase text-zinc-500">Total Wins</div>
