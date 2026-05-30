@@ -115,33 +115,30 @@ export default function PlayerProfile() {
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="border border-zinc-800 bg-zinc-900/40 p-4">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-accent">FFA Performance</h2>
-          <div className="mt-4 grid grid-cols-2 gap-4">
-            <div>
-              <div className="text-[10px] font-semibold uppercase text-zinc-500">Wins</div>
-              <div className="stat-num text-xl text-zinc-100">{player.ffaWins || 0}</div>
+        {(['FFA', 'Team', 'Modified'] as const).map(q => {
+          const stats = player.gameTypeStats?.[q];
+          const color = q === 'FFA' ? 'text-accent' : q === 'Team' ? 'text-blue-400' : 'text-purple-400';
+          
+          return (
+            <div key={q} className="border border-zinc-800 bg-zinc-900/40 p-4">
+              <h2 className={`text-xs font-bold uppercase tracking-widest ${color}`}>{q} Performance</h2>
+              <div className="mt-4 grid grid-cols-3 gap-4">
+                <div>
+                  <div className="text-[10px] font-semibold uppercase text-zinc-500">Score</div>
+                  <div className="stat-num text-xl text-zinc-100">{(stats?.score || 0).toLocaleString()}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-semibold uppercase text-zinc-500">Wins</div>
+                  <div className="stat-num text-xl text-zinc-100">{stats?.wins || 0}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-semibold uppercase text-zinc-500">Matches</div>
+                  <div className="stat-num text-xl text-zinc-100">{stats?.matches || 0}</div>
+                </div>
+              </div>
             </div>
-            <div>
-              <div className="text-[10px] font-semibold uppercase text-zinc-500">Total Score</div>
-              <div className="stat-num text-xl text-zinc-100">{(player.ffaScore || 0).toLocaleString()}</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="border border-zinc-800 bg-zinc-900/40 p-4">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-blue-400">Team Performance</h2>
-          <div className="mt-4 grid grid-cols-2 gap-4">
-            <div>
-              <div className="text-[10px] font-semibold uppercase text-zinc-500">Wins</div>
-              <div className="stat-num text-xl text-zinc-100">{player.teamWins || 0}</div>
-            </div>
-            <div>
-              <div className="text-[10px] font-semibold uppercase text-zinc-500">Total Score</div>
-              <div className="stat-num text-xl text-zinc-100">{(player.teamScore || 0).toLocaleString()}</div>
-            </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
 
       <div className="mt-8 border border-zinc-800 bg-zinc-900/40 p-4">

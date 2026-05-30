@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, collection, getDocs, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, doc, collection, getDocs, writeBatch, serverTimestamp, increment } from 'firebase/firestore';
 import * as dotenv from 'dotenv';
 import { resolve } from 'path';
 import { z } from 'zod';
@@ -105,15 +105,14 @@ async function discover() {
            };
 
            if (result) {
-              const gameTypeKey = `gameTypeStats.${gameType}`;
-              statsUpdate[gameTypeKey] = {
-                wins: (result.won ? 1 : 0),
-                matches: 1,
-                score: (result.score || 0),
-              };
-              statsUpdate.totalScore = (result.score || 0);
-              statsUpdate.wins = (result.won ? 1 : 0);
-              statsUpdate.matches = 1;
+              const gameTypeKey = `gameTypeStats.${gameType || 'unknown'}`;
+              statsUpdate[`${gameTypeKey}.wins`] = increment(result.won ? 1 : 0);
+              statsUpdate[`${gameTypeKey}.matches`] = increment(1);
+              statsUpdate[`${gameTypeKey}.score`] = increment(result.score || 0);
+              
+              statsUpdate.totalScore = increment(result.score || 0);
+              statsUpdate.wins = increment(result.won ? 1 : 0);
+              statsUpdate.matches = increment(1);
            }
 
            batch.set(playerRef, statsUpdate, { merge: true });
